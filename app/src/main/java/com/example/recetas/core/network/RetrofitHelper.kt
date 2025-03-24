@@ -10,7 +10,7 @@ import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 
 object RetrofitHelper {
-    private const val BASE_URL = "http://4.tcp.ngrok.io:15583/api/"
+    private const val BASE_URL = "http://34.194.243.51:8080/api/"
 
     internal val retrofit: Retrofit = Retrofit.Builder()
         .baseUrl(BASE_URL)

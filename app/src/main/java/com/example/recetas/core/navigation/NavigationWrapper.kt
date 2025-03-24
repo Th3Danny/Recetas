@@ -65,7 +65,6 @@ fun NavigationWrapper() {
         }
 
         // Pantalla de Registro
-        // Pantalla de Registro
         composable("register") {
             val registerRepository = RegisterRepository()
             val createUserUseCase = CreateUserUseCase(registerRepository)
@@ -76,12 +75,6 @@ fun NavigationWrapper() {
             val recetaRepository = CreateRecetaRepository(context) // O el repositorio apropiado
             val getIngredientsUseCase = com.example.recetas.register.domain.GetIngredientsUseCase(registerRepository)
 
-            /* Alternativamente, si espera la versión de gustos:
-            val gustosService = retrofit.create(GustosService::class.java)
-            val sessionManager = SessionManagerImpl(context)
-            val gustosRepository = GustosRepository(gustosService, sessionManager)
-            val getIngredientsUseCase = com.example.recetas.gustos.domain.GetIngredientsUseCase(gustosRepository)
-            */
 
             val registerViewModel: RegisterViewModel = viewModel(
                 factory = RegisterViewModelFactory(createUserUseCase, getIngredientsUseCase)

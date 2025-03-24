@@ -77,7 +77,7 @@ fun RegisterUi(
         when (registrationState) {
             RegistrationState.SUCCESS -> {
                 // Navegar a la pantalla de inicio después de un registro exitoso
-                navController.navigate("home") {
+                navController.navigate("login") {
                     popUpTo("login") { inclusive = true }
                 }
             }
