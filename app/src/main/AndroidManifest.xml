@@ -1,12 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
+
     <uses-permission android:name="android.permission.INTERNET"/>
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CONNECTED_DEVICE"/>
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- Para Android 12+ necesitamos permiso específico para el tipo de servicio -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
+    
     <application
         android:allowBackup="true"
         android:networkSecurityConfig="@xml/network_security_config"
@@ -28,12 +31,22 @@
             </intent-filter>
         </service>
 
-        <!--Servicio para monitoreo de red y ejecución en segundo plano &ndash;&gt;-->
-       <service
-            android:name=".core.service.NetworkMonitorService"
+         <!-- Servicio de monitoreo de red con atributo específico para Android 12+ -->
+        <service
+            android:name=".core.service.worker.NetworkMonitorService"
+            android:enabled="true"
             android:exported="false"
-            android:foregroundServiceType="connectedDevice"> 
-        </service>
+            android:foregroundServiceType="dataSync" />
+
+        <!-- Worker para sincronización -->
+        <provider
+            android:name="androidx.startup.InitializationProvider"
+            android:authorities="${applicationId}.androidx-startup"
+            android:exported="false">
+            <meta-data
+                android:name="androidx.work.WorkManagerInitializer"
+                android:value="androidx.startup" />
+        </provider>
 
         <!--  Broadcast Receiver para detectar cambios de conectividad -->
         <receiver

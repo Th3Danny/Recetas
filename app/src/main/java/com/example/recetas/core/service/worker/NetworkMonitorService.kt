@@ -3,16 +3,19 @@ package com.example.recetas.core.service.worker
 import android.Manifest
 import android.app.*
 import android.content.Intent
+import android.content.pm.ServiceInfo
 import android.net.*
 import android.os.Build
 import android.os.IBinder
 import android.util.Log
+import androidx.annotation.RequiresApi
 import androidx.annotation.RequiresPermission
 import androidx.core.app.NotificationCompat
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
 import com.example.recetas.R
-import com.example.recetas.core.workers.SyncRopaOperationsWorker
+import com.example.recetas.core.workers.SyncRecetaOperationsWorker
+
 
 
 class NetworkMonitorService : Service() {
@@ -30,9 +33,15 @@ class NetworkMonitorService : Service() {
     @RequiresPermission(Manifest.permission.ACCESS_NETWORK_STATE)
     override fun onCreate() {
         super.onCreate()
+        Log.d(TAG, "Servicio de monitoreo de red creado")
         createNotificationChannel()
 
-        startForeground(NOTIFICATION_ID, getNotification("Monitoreando conexión..."))
+        // En Android 12+ (API 31+) necesitamos especificar el tipo de servicio en primer plano
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            startForegroundWithType()
+        } else {
+            startForeground(NOTIFICATION_ID, getNotification("Monitoreando conexión..."))
+        }
 
         connectivityManager = getSystemService(CONNECTIVITY_SERVICE) as ConnectivityManager
 
@@ -42,12 +51,13 @@ class NetworkMonitorService : Service() {
                 if (isInternetAvailable()) {
                     Log.d(TAG, "Internet detectado, ejecutando sincronización inmediata...")
 
-                    val workRequest = OneTimeWorkRequestBuilder<SyncRopaOperationsWorker>().build()
+                    // Usar el worker de recetas en lugar del de ropa
+                    val workRequest = OneTimeWorkRequestBuilder<SyncRecetaOperationsWorker>().build()
                     WorkManager.getInstance(applicationContext).enqueue(workRequest)
 
                     // Actualizar notificación
                     val notificationManager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
-                    notificationManager.notify(NOTIFICATION_ID, getNotification("Conectado: Sincronizando datos..."))
+                    notificationManager.notify(NOTIFICATION_ID, getNotification("Conectado: Sincronizando recetas..."))
                 }
             }
 
@@ -66,7 +76,22 @@ class NetworkMonitorService : Service() {
         connectivityManager.registerNetworkCallback(networkRequest, networkCallback)
     }
 
+    @RequiresApi(Build.VERSION_CODES.S)
+    private fun startForegroundWithType() {
+        try {
+            Log.d(TAG, "Iniciando servicio en primer plano con tipo específico (Android 12+)")
+            startForeground(
+                NOTIFICATION_ID,
+                getNotification("Monitoreando conexión..."),
+                ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC
+            )
+        } catch (e: Exception) {
+            Log.e(TAG, "Error al iniciar servicio en primer plano: ${e.message}", e)
+        }
+    }
+
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        Log.d(TAG, "onStartCommand: ${intent?.action}")
         if (intent?.action == ACTION_STOP_SERVICE) {
             stopSelf()
         }
@@ -90,7 +115,7 @@ class NetworkMonitorService : Service() {
                 "Monitoreo de Conexión",
                 NotificationManager.IMPORTANCE_LOW
             ).apply {
-                description = "Monitorea la conexión a internet para sincronizar datos pendientes"
+                description = "Monitorea la conexión a internet para sincronizar recetas pendientes"
             }
             val manager = getSystemService(NotificationManager::class.java)
             manager?.createNotificationChannel(serviceChannel)
@@ -99,7 +124,7 @@ class NetworkMonitorService : Service() {
 
     private fun getNotification(content: String): Notification {
         val stopIntent = Intent(this, NetworkMonitorService::class.java).apply {
-            action = ACTION_STOP_SERVICE // Usar la propiedad `action`
+            action = ACTION_STOP_SERVICE
         }
         val pendingStopIntent = PendingIntent.getService(
             this, 0, stopIntent,
@@ -107,7 +132,7 @@ class NetworkMonitorService : Service() {
         )
 
         return NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle("Catálogo App - Sincronización")
+            .setContentTitle("Recetas App - Sincronización")
             .setContentText(content)
             .setSmallIcon(R.drawable.ic_launcher_foreground)
             .addAction(R.drawable.ic_launcher_foreground, "Detener", pendingStopIntent)

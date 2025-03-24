@@ -30,7 +30,7 @@ object FirebaseHelper {
             val client = OkHttpClient()
 
             // Asumiendo que la URL es correcta - verifica esto con tu backend
-            val url = "http://0.tcp.ngrok.io:14047/api/notifications/register-token"
+            val url = "http://4.tcp.ngrok.io:15583/api/token"
 
             // Crear el cuerpo de la solicitud con MediaType para OkHttp 3.x
             val JSON = MediaType.parse("application/json; charset=utf-8")

@@ -42,26 +42,34 @@ class CreateRecetaRepository(private val context: Context) {
         imagePath: String? = null
     ) {
         return withContext(Dispatchers.IO) {
+            Log.d(TAG, "⬇️ Iniciando proceso de creación de receta: $title")
+
             // Obtener el ID del usuario de las preferencias compartidas
             val sharedPreferences = context.getSharedPreferences("MyAppPrefs", Context.MODE_PRIVATE)
             val userId = sharedPreferences.getInt("userId", -1)
 
             if (userId == -1) {
+                Log.e(TAG, "❌ Usuario no autenticado")
                 throw Exception("Usuario no autenticado")
             }
 
             try {
                 // Intentar crear la receta en el servidor
+                Log.d(TAG, "⬆️ Intentando crear receta en el servidor...")
                 crearRecetaEnServidor(
                     userId, title, description, instructions, preparationTime,
                     cookingTime, servings, difficulty, categoryIds, ingredients, imagePath
                 )
+                Log.d(TAG, "✅ Receta creada exitosamente en el servidor")
             } catch (e: Exception) {
                 // Si hay un error de red, guardar la operación pendiente y la receta localmente
+                Log.w(TAG, "⚠️ Error al crear receta en servidor: ${e.message}")
+                Log.d(TAG, "💾 Guardando receta localmente...")
                 guardarRecetaLocalmente(
                     userId, title, description, instructions, preparationTime,
                     cookingTime, servings, difficulty, categoryIds, ingredients, imagePath
                 )
+                Log.d(TAG, "✅ Receta guardada localmente con éxito")
             }
         }
     }
@@ -88,9 +96,15 @@ class CreateRecetaRepository(private val context: Context) {
             )
         }
 
+        Log.d(TAG, "📋 Preparando solicitud para el servidor:")
+        Log.d(TAG, "  - Usuario: $userId")
+        Log.d(TAG, "  - Título: $title")
+        Log.d(TAG, "  - Categorías: $categoryIds")
+        Log.d(TAG, "  - Ingredientes: ${ingredientRequests.size}")
+
         if (imagePath != null) {
+            Log.d(TAG, "🖼️ Imagen incluida: $imagePath")
             // Aquí iría el código para subir la receta con imagen
-            // Código comentado en el original
         } else {
             // Crear solicitud sin imagen
             val request = CreateRecetaRequest(
@@ -106,9 +120,13 @@ class CreateRecetaRepository(private val context: Context) {
                 ingredients = ingredientRequests
             )
 
+            Log.d(TAG, "⬆️ Enviando solicitud al servidor...")
             val response = createRecetaService.createReceta(request)
 
-            if (!response.isSuccessful) {
+            if (response.isSuccessful) {
+                Log.d(TAG, "✅ Respuesta exitosa del servidor: ${response.code()}")
+            } else {
+                Log.e(TAG, "❌ Error del servidor: ${response.code()} - ${response.message()}")
                 throw Exception("Error al crear receta: ${response.message()}")
             }
         }
@@ -127,6 +145,8 @@ class CreateRecetaRepository(private val context: Context) {
         ingredients: List<Ingredient>,
         imagePath: String? = null
     ) {
+        Log.d(TAG, "💾 Iniciando guardado local de receta")
+
         // Guardar la receta en la base de datos local
         val ingredientEntities = ingredients.map { ingredient ->
             IngredientEntity(
@@ -151,33 +171,47 @@ class CreateRecetaRepository(private val context: Context) {
             isSynced = false
         )
 
-        val recetaId = recetaDao.insertReceta(recetaEntity)
+        try {
+            Log.d(TAG, "📝 Guardando receta en la base de datos local...")
+            val recetaId = recetaDao.insertReceta(recetaEntity)
+            Log.d(TAG, "✅ Receta guardada en la base de datos con ID: $recetaId")
 
-        // Crear una operación pendiente para sincronizar cuando haya conexión
-        val ingredientJson = Gson().toJson(ingredients.map { ingredient ->
-            IngredientRequest(
-                ingredient_id = ingredient.id,
-                quantity = ingredient.quantity,
-                unit = ingredient.unit
+            // Crear una operación pendiente para sincronizar cuando haya conexión
+            val ingredientJson = Gson().toJson(ingredients.map { ingredient ->
+                IngredientRequest(
+                    ingredient_id = ingredient.id,
+                    quantity = ingredient.quantity,
+                    unit = ingredient.unit
+                )
+            })
+
+            val pendingOperation = PendingRecetaOperationEntity(
+                operationType = "CREATE",
+                userId = userId,
+                title = title,
+                description = description,
+                instructions = instructions,
+                preparationTime = preparationTime,
+                cookingTime = cookingTime,
+                servings = servings,
+                difficulty = difficulty,
+                image = imagePath,
+                categoryIds = categoryIds,
+                ingredients = ingredientJson
             )
-        })
 
-        val pendingOperation = PendingRecetaOperationEntity(
-            operationType = "CREATE",
-            userId = userId,
-            title = title,
-            description = description,
-            instructions = instructions,
-            preparationTime = preparationTime,
-            cookingTime = cookingTime,
-            servings = servings,
-            difficulty = difficulty,
-            image = imagePath,
-            categoryIds = categoryIds,
-            ingredients = ingredientJson
-        )
+            Log.d(TAG, "📝 Creando operación pendiente para sincronización futura...")
+            val operationId = pendingOperationDao.insertPendingOperation(pendingOperation)
+            Log.d(TAG, "✅ Operación pendiente creada con ID: $operationId")
 
-        pendingOperationDao.insertPendingOperation(pendingOperation)
+            // Contar operaciones pendientes para verificación
+            val pendingCount = pendingOperationDao.getPendingOperationsCount()
+            Log.d(TAG, "🔄 Total de operaciones pendientes: $pendingCount")
+        } catch (e: Exception) {
+            Log.e(TAG, "❌ Error al guardar localmente: ${e.message}")
+            e.printStackTrace()
+            throw e  // Re-lanzar para que pueda ser manejada arriba
+        }
     }
 
     suspend fun getGustos(): List<Gusto> {
@@ -259,18 +293,24 @@ class CreateRecetaRepository(private val context: Context) {
 
     suspend fun sincronizarRecetasPendientes() {
         withContext(Dispatchers.IO) {
+            Log.d(TAG, "🔄 Iniciando sincronización de recetas pendientes")
             val pendingOperations = pendingOperationDao.getAllPendingOperations()
+            Log.d(TAG, "📋 Operaciones pendientes encontradas: ${pendingOperations.size}")
 
             for (operation in pendingOperations) {
                 try {
                     // Marcar la operación como en progreso
+                    Log.d(TAG, "⏳ Procesando operación ID: ${operation.id}, tipo: ${operation.operationType}")
                     pendingOperationDao.updateOperationStatus(operation.id, "IN_PROGRESS")
 
                     when (operation.operationType) {
                         "CREATE" -> {
+                            Log.d(TAG, "🆕 Sincronizando creación de receta: ${operation.title}")
+
                             // Convertir de JSON a lista de IngredientRequest
                             val ingredientRequestsType = object : com.google.gson.reflect.TypeToken<List<IngredientRequest>>() {}.type
                             val ingredientRequests: List<IngredientRequest> = Gson().fromJson(operation.ingredients, ingredientRequestsType)
+                            Log.d(TAG, "📋 Ingredientes recuperados: ${ingredientRequests.size}")
 
                             val request = CreateRecetaRequest(
                                 user_id = operation.userId,
@@ -285,16 +325,20 @@ class CreateRecetaRepository(private val context: Context) {
                                 ingredients = ingredientRequests
                             )
 
+                            Log.d(TAG, "⬆️ Enviando receta pendiente al servidor...")
                             val response = createRecetaService.createReceta(request)
 
                             if (response.isSuccessful) {
+                                Log.d(TAG, "✅ Sincronización exitosa para receta: ${operation.id}")
+
                                 // Eliminar la operación pendiente
                                 pendingOperationDao.deletePendingOperation(operation.id)
+                                Log.d(TAG, "🗑️ Operación pendiente eliminada: ${operation.id}")
 
                                 // Buscar y marcar la receta como sincronizada
-                                // Esto es una simplificación, necesitarías encontrar la receta correspondiente
-                                // en una implementación real
                                 val recetas = recetaDao.getUnsyncedRecetas()
+                                Log.d(TAG, "🔍 Buscando receta para marcar como sincronizada entre ${recetas.size} recetas no sincronizadas")
+
                                 val recetaToSync = recetas.find {
                                     it.title == operation.title &&
                                             it.userId == operation.userId &&
@@ -302,24 +346,41 @@ class CreateRecetaRepository(private val context: Context) {
                                 }
 
                                 recetaToSync?.let {
+                                    Log.d(TAG, "✓ Receta encontrada para marcar como sincronizada: ${it.id}")
                                     recetaDao.markRecetaAsSynced(it.id)
-                                }
+                                    Log.d(TAG, "✅ Receta marcada como sincronizada: ${it.id}")
+                                } ?: Log.w(TAG, "⚠️ No se encontró la receta correspondiente para marcar como sincronizada")
+
                             } else {
                                 // Si falló la sincronización, marcar como pendiente nuevamente
+                                Log.e(TAG, "❌ Error al sincronizar: ${response.code()} - ${response.message()}")
                                 pendingOperationDao.updateOperationStatus(operation.id, "PENDING")
+                                Log.d(TAG, "🔄 Operación marcada como pendiente nuevamente: ${operation.id}")
                             }
                         }
                         // Implementar otros tipos de operaciones (UPDATE, DELETE) si es necesario
+                        else -> {
+                            Log.w(TAG, "⚠️ Tipo de operación no soportada: ${operation.operationType}")
+                        }
                     }
                 } catch (e: Exception) {
                     // Si hay un error, incrementar el contador de intentos y marcar como pendiente
+                    Log.e(TAG, "❌ Error al sincronizar operación ${operation.id}: ${e.message}")
+                    e.printStackTrace()
                     pendingOperationDao.updateOperationStatus(operation.id, "PENDING")
+                    Log.d(TAG, "🔄 Operación marcada como pendiente después de error: ${operation.id}")
                 }
             }
+
+            // Verificar conteo final
+            val remainingCount = pendingOperationDao.getPendingOperationsCount()
+            Log.d(TAG, "🔄 Sincronización completada. Operaciones pendientes restantes: $remainingCount")
         }
     }
 
     suspend fun contarOperacionesPendientes(): Int {
-        return pendingOperationDao.getPendingOperationsCount()
+        val count = pendingOperationDao.getPendingOperationsCount()
+        Log.d(TAG, "🔢 Total de operaciones pendientes: $count")
+        return count
     }
 }

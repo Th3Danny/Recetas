@@ -19,6 +19,7 @@ import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -98,6 +99,36 @@ fun CreateRecetaScreen(
                     containerColor = Color.White
                 ),
                 actions = {
+                    // Indicador de operaciones pendientes
+                    val pendingCount by createRecetaViewModel.pendingOperationsCount.observeAsState(0)
+                    if (pendingCount > 0) {
+                        Box(
+                            modifier = Modifier
+                                .padding(end = 8.dp)
+                                .size(32.dp)
+                                .background(Color(0xFFFFE082), CircleShape)
+                                .clickable { createRecetaViewModel.sincronizarPendientes() },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = pendingCount.toString(),
+                                color = Color.Black,
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+
+                        IconButton(
+                            onClick = { createRecetaViewModel.sincronizarPendientes() }
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Refresh,
+                                contentDescription = "Sincronizar recetas pendientes",
+                                tint = PrimaryPink
+                            )
+                        }
+                    }
+
                     if (isLoading) {
                         CircularProgressIndicator(
                             modifier = Modifier
@@ -108,7 +139,8 @@ fun CreateRecetaScreen(
                     } else {
                         IconButton(
                             onClick = {
-                                if (validateInputs(title, description, instructions, selectedGustos, selectedIngredients)) {
+                                val selectedCategories = createRecetaViewModel.selectedCategories.value ?: emptyList()
+                                if (validateInputs(title, description, instructions, selectedGustos, selectedIngredients, selectedCategories)) {
                                     createRecetaViewModel.createReceta()
                                 }
                             }
