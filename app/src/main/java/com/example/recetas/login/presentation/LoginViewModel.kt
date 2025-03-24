@@ -111,18 +111,14 @@ open class LoginViewModel(
         viewModelScope.launch {
             try {
                 val fcmToken = FirebaseMessaging.getInstance().token.await()
-                Log.d("FCM", "Token FCM completo: $fcmToken")
+                Log.d("FCM", "Token FCM en login: $fcmToken")
 
                 val sharedPreferences = context.getSharedPreferences("MyAppPrefs", Context.MODE_PRIVATE)
                 val authToken = sharedPreferences.getString("authToken", "")
 
                 if (!authToken.isNullOrEmpty()) {
-                    // Verificar que el token no esté vacío antes de enviarlo
-                    if (fcmToken.isNotBlank()) {
-                        FirebaseHelper.sendTokenToServer(context, fcmToken)
-                    } else {
-                        Log.e("FCM", "Token FCM está vacío")
-                    }
+                    // Postpone this to avoid immediate network errors
+                    FirebaseHelper.sendTokenToServer(context, fcmToken)
                 } else {
                     Log.e("FCM", "No se enviará el token de FCM porque el usuario no ha iniciado sesión.")
                 }

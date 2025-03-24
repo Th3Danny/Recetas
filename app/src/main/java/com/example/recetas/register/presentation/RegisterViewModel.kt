@@ -37,9 +37,6 @@ class RegisterViewModel(
     private val _isSuccess = MutableLiveData(false)
     val isSuccess: LiveData<Boolean> = _isSuccess
 
-    private val _success = MutableLiveData(false)
-    val success: LiveData<Boolean> = _success
-
     private val _gustos = MutableStateFlow<List<Gusto>>(emptyList())
     val gustos: StateFlow<List<Gusto>> = _gustos
 
