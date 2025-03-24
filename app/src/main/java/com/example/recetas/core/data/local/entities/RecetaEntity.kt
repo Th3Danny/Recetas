@@ -24,7 +24,7 @@ data class RecetaEntity(
     val categoryIds: List<Int>,
     @TypeConverters(IngredientsConverter::class)
     val ingredients: List<IngredientEntity>,
-    val isSynced: Boolean = false // Indica si la receta se ha sincronizado con el servidor
+    val isSynced: Boolean = false
 )
 
 data class IngredientEntity(

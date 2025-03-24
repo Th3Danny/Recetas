@@ -14,7 +14,7 @@ class CreateRecetaViewModelFactory(
         if (modelClass.isAssignableFrom(CreateRecetaViewModel::class.java)) {
             val repository = CreateRecetaRepository(context)
             val createRecetaUseCase = CreateRecetaUseCase(repository)
-            val getGustosUseCase = GetGustosUseCase(repository)
+//            val getGustosUseCase = GetGustosUseCase(repository)
             val getIngredientsUseCase = GetIngredientsUseCase(repository)
             val getCategoriesUseCase = GetCategoriesUseCase(repository)
             val sincronizarRecetasPendientesUseCase = SincronizarRecetasPendientesUseCase(repository)
@@ -23,7 +23,7 @@ class CreateRecetaViewModelFactory(
             @Suppress("UNCHECKED_CAST")
             return CreateRecetaViewModel(
                 createRecetaUseCase,
-                getGustosUseCase,
+//                getGustosUseCase,
                 getIngredientsUseCase,
                 getCategoriesUseCase,
                 sincronizarRecetasPendientesUseCase,

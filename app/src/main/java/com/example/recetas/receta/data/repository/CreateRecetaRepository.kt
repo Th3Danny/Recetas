@@ -7,13 +7,12 @@ import com.example.recetas.core.data.local.entities.IngredientEntity
 import com.example.recetas.core.data.local.entities.PendingRecetaOperationEntity
 import com.example.recetas.core.data.local.entities.RecetaEntity
 import com.example.recetas.core.network.RetrofitHelper
-import com.example.recetas.gustos.data.model.Gusto
 import com.example.recetas.receta.data.model.Category
 import com.example.recetas.receta.data.model.CreateRecetaRequest
-import com.example.recetas.receta.data.model.Ingredient
+import com.example.recetas.register.data.model.Ingredient
 import com.example.recetas.receta.data.model.IngredientRequest
 import com.example.recetas.receta.data.model.toCategory
-import com.example.recetas.receta.data.model.toIngredient
+import com.example.recetas.register.data.model.toIngredient
 import com.google.gson.Gson
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
@@ -21,7 +20,7 @@ import kotlinx.coroutines.withContext
 
 class CreateRecetaRepository(private val context: Context) {
     companion object {
-        private const val TAG = "CreateRecetaRepository"
+        internal const val TAG = "CreateRecetaRepository"
     }
     private val createRecetaService = RetrofitHelper.createRecetaService
     private val gustosService = RetrofitHelper.gustosService
@@ -42,34 +41,34 @@ class CreateRecetaRepository(private val context: Context) {
         imagePath: String? = null
     ) {
         return withContext(Dispatchers.IO) {
-            Log.d(TAG, "⬇️ Iniciando proceso de creación de receta: $title")
+            Log.d(TAG, " Iniciando proceso de creación de receta: $title")
 
             // Obtener el ID del usuario de las preferencias compartidas
             val sharedPreferences = context.getSharedPreferences("MyAppPrefs", Context.MODE_PRIVATE)
             val userId = sharedPreferences.getInt("userId", -1)
 
             if (userId == -1) {
-                Log.e(TAG, "❌ Usuario no autenticado")
+                Log.e(TAG, " Usuario no autenticado")
                 throw Exception("Usuario no autenticado")
             }
 
             try {
                 // Intentar crear la receta en el servidor
-                Log.d(TAG, "⬆️ Intentando crear receta en el servidor...")
+                Log.d(TAG, " Intentando crear receta en el servidor...")
                 crearRecetaEnServidor(
                     userId, title, description, instructions, preparationTime,
                     cookingTime, servings, difficulty, categoryIds, ingredients, imagePath
                 )
-                Log.d(TAG, "✅ Receta creada exitosamente en el servidor")
+                Log.d(TAG, " Receta creada exitosamente en el servidor")
             } catch (e: Exception) {
                 // Si hay un error de red, guardar la operación pendiente y la receta localmente
-                Log.w(TAG, "⚠️ Error al crear receta en servidor: ${e.message}")
-                Log.d(TAG, "💾 Guardando receta localmente...")
+                Log.w(TAG, "️ Error al crear receta en servidor: ${e.message}")
+                Log.d(TAG, " Guardando receta localmente...")
                 guardarRecetaLocalmente(
                     userId, title, description, instructions, preparationTime,
                     cookingTime, servings, difficulty, categoryIds, ingredients, imagePath
                 )
-                Log.d(TAG, "✅ Receta guardada localmente con éxito")
+                Log.d(TAG, " Receta guardada localmente con éxito")
             }
         }
     }
@@ -96,14 +95,14 @@ class CreateRecetaRepository(private val context: Context) {
             )
         }
 
-        Log.d(TAG, "📋 Preparando solicitud para el servidor:")
+        Log.d(TAG, " Preparando solicitud para el servidor:")
         Log.d(TAG, "  - Usuario: $userId")
         Log.d(TAG, "  - Título: $title")
         Log.d(TAG, "  - Categorías: $categoryIds")
         Log.d(TAG, "  - Ingredientes: ${ingredientRequests.size}")
 
         if (imagePath != null) {
-            Log.d(TAG, "🖼️ Imagen incluida: $imagePath")
+            Log.d(TAG, " Imagen incluida: $imagePath")
             // Aquí iría el código para subir la receta con imagen
         } else {
             // Crear solicitud sin imagen
@@ -120,13 +119,13 @@ class CreateRecetaRepository(private val context: Context) {
                 ingredients = ingredientRequests
             )
 
-            Log.d(TAG, "⬆️ Enviando solicitud al servidor...")
+            Log.d(TAG, " Enviando solicitud al servidor...")
             val response = createRecetaService.createReceta(request)
 
             if (response.isSuccessful) {
-                Log.d(TAG, "✅ Respuesta exitosa del servidor: ${response.code()}")
+                Log.d(TAG, " Respuesta exitosa del servidor: ${response.code()}")
             } else {
-                Log.e(TAG, "❌ Error del servidor: ${response.code()} - ${response.message()}")
+                Log.e(TAG, " Error del servidor: ${response.code()} - ${response.message()}")
                 throw Exception("Error al crear receta: ${response.message()}")
             }
         }
@@ -145,7 +144,7 @@ class CreateRecetaRepository(private val context: Context) {
         ingredients: List<Ingredient>,
         imagePath: String? = null
     ) {
-        Log.d(TAG, "💾 Iniciando guardado local de receta")
+        Log.d(TAG, " Iniciando guardado local de receta")
 
         // Guardar la receta en la base de datos local
         val ingredientEntities = ingredients.map { ingredient ->
@@ -172,9 +171,9 @@ class CreateRecetaRepository(private val context: Context) {
         )
 
         try {
-            Log.d(TAG, "📝 Guardando receta en la base de datos local...")
+            Log.d(TAG, " Guardando receta en la base de datos local...")
             val recetaId = recetaDao.insertReceta(recetaEntity)
-            Log.d(TAG, "✅ Receta guardada en la base de datos con ID: $recetaId")
+            Log.d(TAG, " Receta guardada en la base de datos con ID: $recetaId")
 
             // Crear una operación pendiente para sincronizar cuando haya conexión
             val ingredientJson = Gson().toJson(ingredients.map { ingredient ->
@@ -200,42 +199,42 @@ class CreateRecetaRepository(private val context: Context) {
                 ingredients = ingredientJson
             )
 
-            Log.d(TAG, "📝 Creando operación pendiente para sincronización futura...")
+            Log.d(TAG, " Creando operación pendiente para sincronización futura...")
             val operationId = pendingOperationDao.insertPendingOperation(pendingOperation)
-            Log.d(TAG, "✅ Operación pendiente creada con ID: $operationId")
+            Log.d(TAG, " Operación pendiente creada con ID: $operationId")
 
             // Contar operaciones pendientes para verificación
             val pendingCount = pendingOperationDao.getPendingOperationsCount()
-            Log.d(TAG, "🔄 Total de operaciones pendientes: $pendingCount")
+            Log.d(TAG, " Total de operaciones pendientes: $pendingCount")
         } catch (e: Exception) {
-            Log.e(TAG, "❌ Error al guardar localmente: ${e.message}")
+            Log.e(TAG, " Error al guardar localmente: ${e.message}")
             e.printStackTrace()
             throw e  // Re-lanzar para que pueda ser manejada arriba
         }
     }
 
-    suspend fun getGustos(): List<Gusto> {
-        return withContext(Dispatchers.IO) {
-            try {
-                val response = gustosService.getAllGustos()
-
-                if (response.isSuccessful && response.body() != null) {
-                    // Aquí response.body() es directamente una List<GustoResponse>, no tiene una propiedad 'data'
-                    response.body()!!.map {
-                        Gusto(
-                            id = it.id,
-                            nombre = it.nombre
-                        )
-                    }
-                } else {
-                    throw Exception("Error al obtener gustos: ${response.message()}")
-                }
-            } catch (e: Exception) {
-                // Implementar lógica para obtener gustos en caché si están disponibles
-                emptyList()
-            }
-        }
-    }
+//    suspend fun getGustos(): List<Gusto> {
+//        return withContext(Dispatchers.IO) {
+//            try {
+//                val response = gustosService.getAllGustos()
+//
+//                if (response.isSuccessful && response.body() != null) {
+//                    // Aquí response.body() es directamente una List<GustoResponse>, no tiene una propiedad 'data'
+//                    response.body()!!.map {
+//                        Gusto(
+//                            id = it.id,
+//                            nombre = it.nombre
+//                        )
+//                    }
+//                } else {
+//                    throw Exception("Error al obtener gustos: ${response.message()}")
+//                }
+//            } catch (e: Exception) {
+//                // Implementar lógica para obtener gustos en caché si están disponibles
+//                emptyList()
+//            }
+//        }
+//    }
 
     suspend fun getIngredients(): List<Ingredient> {
         return withContext(Dispatchers.IO) {
@@ -293,9 +292,9 @@ class CreateRecetaRepository(private val context: Context) {
 
     suspend fun sincronizarRecetasPendientes() {
         withContext(Dispatchers.IO) {
-            Log.d(TAG, "🔄 Iniciando sincronización de recetas pendientes")
+            Log.d(TAG, " Iniciando sincronización de recetas pendientes")
             val pendingOperations = pendingOperationDao.getAllPendingOperations()
-            Log.d(TAG, "📋 Operaciones pendientes encontradas: ${pendingOperations.size}")
+            Log.d(TAG, " Operaciones pendientes encontradas: ${pendingOperations.size}")
 
             for (operation in pendingOperations) {
                 try {
@@ -325,19 +324,19 @@ class CreateRecetaRepository(private val context: Context) {
                                 ingredients = ingredientRequests
                             )
 
-                            Log.d(TAG, "⬆️ Enviando receta pendiente al servidor...")
+                            Log.d(TAG, "⬆ Enviando receta pendiente al servidor...")
                             val response = createRecetaService.createReceta(request)
 
                             if (response.isSuccessful) {
-                                Log.d(TAG, "✅ Sincronización exitosa para receta: ${operation.id}")
+                                Log.d(TAG, " Sincronización exitosa para receta: ${operation.id}")
 
                                 // Eliminar la operación pendiente
                                 pendingOperationDao.deletePendingOperation(operation.id)
-                                Log.d(TAG, "🗑️ Operación pendiente eliminada: ${operation.id}")
+                                Log.d(TAG, " Operación pendiente eliminada: ${operation.id}")
 
                                 // Buscar y marcar la receta como sincronizada
                                 val recetas = recetaDao.getUnsyncedRecetas()
-                                Log.d(TAG, "🔍 Buscando receta para marcar como sincronizada entre ${recetas.size} recetas no sincronizadas")
+                                Log.d(TAG, " Buscando receta para marcar como sincronizada entre ${recetas.size} recetas no sincronizadas")
 
                                 val recetaToSync = recetas.find {
                                     it.title == operation.title &&
@@ -348,39 +347,39 @@ class CreateRecetaRepository(private val context: Context) {
                                 recetaToSync?.let {
                                     Log.d(TAG, "✓ Receta encontrada para marcar como sincronizada: ${it.id}")
                                     recetaDao.markRecetaAsSynced(it.id)
-                                    Log.d(TAG, "✅ Receta marcada como sincronizada: ${it.id}")
-                                } ?: Log.w(TAG, "⚠️ No se encontró la receta correspondiente para marcar como sincronizada")
+                                    Log.d(TAG, " Receta marcada como sincronizada: ${it.id}")
+                                } ?: Log.w(TAG, " No se encontró la receta correspondiente para marcar como sincronizada")
 
                             } else {
                                 // Si falló la sincronización, marcar como pendiente nuevamente
-                                Log.e(TAG, "❌ Error al sincronizar: ${response.code()} - ${response.message()}")
+                                Log.e(TAG, " Error al sincronizar: ${response.code()} - ${response.message()}")
                                 pendingOperationDao.updateOperationStatus(operation.id, "PENDING")
                                 Log.d(TAG, "🔄 Operación marcada como pendiente nuevamente: ${operation.id}")
                             }
                         }
                         // Implementar otros tipos de operaciones (UPDATE, DELETE) si es necesario
                         else -> {
-                            Log.w(TAG, "⚠️ Tipo de operación no soportada: ${operation.operationType}")
+                            Log.w(TAG, "️ Tipo de operación no soportada: ${operation.operationType}")
                         }
                     }
                 } catch (e: Exception) {
                     // Si hay un error, incrementar el contador de intentos y marcar como pendiente
-                    Log.e(TAG, "❌ Error al sincronizar operación ${operation.id}: ${e.message}")
+                    Log.e(TAG, " Error al sincronizar operación ${operation.id}: ${e.message}")
                     e.printStackTrace()
                     pendingOperationDao.updateOperationStatus(operation.id, "PENDING")
-                    Log.d(TAG, "🔄 Operación marcada como pendiente después de error: ${operation.id}")
+                    Log.d(TAG, " Operación marcada como pendiente después de error: ${operation.id}")
                 }
             }
 
             // Verificar conteo final
             val remainingCount = pendingOperationDao.getPendingOperationsCount()
-            Log.d(TAG, "🔄 Sincronización completada. Operaciones pendientes restantes: $remainingCount")
+            Log.d(TAG, " Sincronización completada. Operaciones pendientes restantes: $remainingCount")
         }
     }
 
     suspend fun contarOperacionesPendientes(): Int {
         val count = pendingOperationDao.getPendingOperationsCount()
-        Log.d(TAG, "🔢 Total de operaciones pendientes: $count")
+        Log.d(TAG, " Total de operaciones pendientes: $count")
         return count
     }
 }

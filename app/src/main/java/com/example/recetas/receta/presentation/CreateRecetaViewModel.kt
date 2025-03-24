@@ -7,10 +7,10 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.recetas.gustos.data.model.Gusto
 import com.example.recetas.receta.data.model.Category
-import com.example.recetas.receta.data.model.Ingredient
+import com.example.recetas.register.data.model.Ingredient
 import com.example.recetas.receta.domain.CreateRecetaUseCase
 import com.example.recetas.receta.domain.GetCategoriesUseCase
-import com.example.recetas.receta.domain.GetGustosUseCase
+//import com.example.recetas.receta.domain.GetGustosUseCase
 import com.example.recetas.receta.domain.GetIngredientsUseCase
 import com.example.recetas.receta.domain.GetPendingOperationsCountUseCase
 import com.example.recetas.receta.domain.SincronizarRecetasPendientesUseCase
@@ -18,7 +18,7 @@ import kotlinx.coroutines.launch
 
 class CreateRecetaViewModel(
     private val createRecetaUseCase: CreateRecetaUseCase,
-    private val getGustosUseCase: GetGustosUseCase,
+//    private val getGustosUseCase: GetGustosUseCase,
     private val getIngredientsUseCase: GetIngredientsUseCase,
     private val getCategoriesUseCase: GetCategoriesUseCase,
     private val sincronizarRecetasPendientesUseCase: SincronizarRecetasPendientesUseCase,
@@ -81,36 +81,36 @@ class CreateRecetaViewModel(
     private var imagePath: String? = null
 
     init {
-        loadGustos()
+//        loadGustos()
         loadIngredients()
         loadCategories()
         loadPendingOperationsCount()
     }
 
     // Métodos existentes
-    fun loadGustos() {
-        viewModelScope.launch {
-            try {
-                _isLoading.postValue(true)
-                _error.postValue("")
-
-                val result = getGustosUseCase()
-
-                result.onSuccess { gustos ->
-                    _gustosDisponibles.postValue(gustos)
-                }.onFailure { exception ->
-                    Log.e("CreateRecetaViewModel", "Error al cargar gustos: ${exception.message}")
-                    _error.postValue("Error al cargar las categorías: ${exception.message}")
-                }
-
-            } catch (e: Exception) {
-                Log.e("CreateRecetaViewModel", "Excepción al cargar gustos: ${e.message}")
-                _error.postValue("Error: ${e.message}")
-            } finally {
-                _isLoading.postValue(false)
-            }
-        }
-    }
+//    fun loadGustos() {
+//        viewModelScope.launch {
+//            try {
+//                _isLoading.postValue(true)
+//                _error.postValue("")
+//
+//                val result = getGustosUseCase()
+//
+//                result.onSuccess { gustos ->
+//                    _gustosDisponibles.postValue(gustos)
+//                }.onFailure { exception ->
+//                    Log.e("CreateRecetaViewModel", "Error al cargar gustos: ${exception.message}")
+//                    _error.postValue("Error al cargar las categorías: ${exception.message}")
+//                }
+//
+//            } catch (e: Exception) {
+//                Log.e("CreateRecetaViewModel", "Excepción al cargar gustos: ${e.message}")
+//                _error.postValue("Error: ${e.message}")
+//            } finally {
+//                _isLoading.postValue(false)
+//            }
+//        }
+//    }
 
     fun loadIngredients() {
         viewModelScope.launch {

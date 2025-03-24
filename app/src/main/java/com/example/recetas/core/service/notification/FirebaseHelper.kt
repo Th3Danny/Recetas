@@ -12,7 +12,7 @@ object FirebaseHelper {
     // Manejo de errores mejorado para el envío de tokens FCM
     fun sendTokenToServer(context: Context, token: String) {
         try {
-            Log.d(TAG, "📡 Intentando enviar token FCM al backend: $token")
+            Log.d(TAG, " Intentando enviar token FCM al backend: $token")
 
             val sharedPreferences = context.getSharedPreferences("MyAppPrefs", Context.MODE_PRIVATE)
             val authToken = sharedPreferences.getString("authToken", "")

@@ -1,5 +1,6 @@
 package com.example.recetas.register.presentation
 
+import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -26,27 +27,49 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.recetas.ui.theme.*
+import com.google.firebase.messaging.FirebaseMessaging
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RegisterUi(
     registerViewModel: RegisterViewModel,
     navController: NavController,
-    onNavigateToLogin: () -> Unit
+    onNavigateToLogin: () -> Unit,
 ) {
-    val gustos by registerViewModel.gustos.collectAsState()
+    val ingredientes by registerViewModel.gustos.collectAsState()
     val registrationState by registerViewModel.registrationState.collectAsState()
 
     var name by remember { mutableStateOf("") }
+    var username by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var confirmPassword by remember { mutableStateOf("") }
-    var selectedGustoIndex by remember { mutableStateOf(0) }
+
+    // Estado para ingredientes seleccionados
+    var selectedIngredientIds by remember { mutableStateOf(setOf<Int>()) }
+
+    // Estado para mostrar el ingrediente seleccionado
+    var selectedIngredientName by remember { mutableStateOf("Seleccionar ingrediente") }
+
     var expanded by remember { mutableStateOf(false) }
+    var showError by remember { mutableStateOf(false) }
+    var errorMessage by remember { mutableStateOf("") }
+    var fcmToken by remember { mutableStateOf("") }
 
     // Efecto para cargar los gustos al iniciar la pantalla
     LaunchedEffect(key1 = Unit) {
-        registerViewModel.fetchGustos()
+        registerViewModel.loadIngredients()
+    }
+
+    LaunchedEffect(Unit) {
+        FirebaseMessaging.getInstance().token.addOnCompleteListener { task ->
+            if (task.isSuccessful) {
+                fcmToken = task.result ?: ""
+                Log.d("FCM", "Token obtenido para registro: $fcmToken")
+            } else {
+                Log.e("FCM", "Error obteniendo token FCM", task.exception)
+            }
+        }
     }
 
     // Efecto para manejar el estado de registro
@@ -59,7 +82,9 @@ fun RegisterUi(
                 }
             }
             RegistrationState.ERROR -> {
-                // Mostrar un mensaje de error (ya está implementado en la UI)
+                // Mostrar mensaje de error
+                showError = true
+                errorMessage = "Error en el registro. Por favor, intenta nuevamente."
             }
             else -> {
                 // No hacer nada en otros estados
@@ -79,7 +104,6 @@ fun RegisterUi(
                 .fillMaxWidth()
                 .padding(16.dp),
             shape = RoundedCornerShape(12.dp),
-            // Cambio: Usar CardDefaults.cardElevation() en lugar de elevation directamente
             elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
         ) {
             Column(
@@ -117,6 +141,29 @@ fun RegisterUi(
                         unfocusedBorderColor = SecondaryPink
                     ),
                     placeholder = { Text("Enter your name") },
+                    shape = RoundedCornerShape(8.dp)
+                )
+
+                // Campo de username
+                Text(
+                    text = "Username",
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 4.dp),
+                    color = PrimaryPink
+                )
+
+                OutlinedTextField(
+                    value = username,
+                    onValueChange = { username = it },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 16.dp),
+                    colors = TextFieldDefaults.outlinedTextFieldColors(
+                        focusedBorderColor = PrimaryPink,
+                        unfocusedBorderColor = SecondaryPink
+                    ),
+                    placeholder = { Text("Choose a username") },
                     shape = RoundedCornerShape(8.dp)
                 )
 
@@ -205,83 +252,87 @@ fun RegisterUi(
                         .fillMaxWidth()
                         .padding(bottom = 24.dp)
                 ) {
-                    OutlinedButton(
-                        onClick = { expanded = true },
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(8.dp),
-                        colors = ButtonDefaults.outlinedButtonColors(
-                            containerColor = Color.White,
-                            contentColor = Color.Black
+                    // Mostrar indicador de carga si los ingredientes aún no están cargados
+                    if (ingredientes.isEmpty()) {
+                        CircularProgressIndicator(
+                            modifier = Modifier
+                                .size(50.dp)
+                                .align(Alignment.Center),
+                            color = PrimaryPink
                         )
-                    ) {
-                        Text(
-                            text = if (gustos.isNotEmpty() && selectedGustoIndex < gustos.size)
-                                gustos[selectedGustoIndex].nombre
-                            else
-                                "Seleccionar gusto",
-                            modifier = Modifier.padding(8.dp)
-                        )
-                    }
-
-                    DropdownMenu(
-                        expanded = expanded,
-                        onDismissRequest = { expanded = false },
-                        modifier = Modifier.fillMaxWidth(0.9f)
-                    ) {
-                        gustos.forEachIndexed { index, gusto ->
-                            DropdownMenuItem(
-                                onClick = {
-                                    selectedGustoIndex = index
-                                    expanded = false
-                                },
-                                text = { // Aquí se define el texto del ítem
-                                    Text(text = gusto.nombre)
-                                }
+                    } else {
+                        OutlinedButton(
+                            onClick = { expanded = true },
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(8.dp),
+                            colors = ButtonDefaults.outlinedButtonColors(
+                                containerColor = Color.White,
+                                contentColor = Color.Black
                             )
+                        ) {
+                            Text(text = selectedIngredientName)
                         }
-                    }
-                }
 
-                // Mensaje de error
-                if (registrationState == RegistrationState.ERROR) {
-                    Text(
-                        text = "Error al registrar. Verifica tus datos.",
-                        color = Color.Red,
-                        modifier = Modifier.padding(bottom = 8.dp)
-                    )
-                }
-
-                // Botón de registro
-                Button(
-                    onClick = {
-                        if (validateInputs(name, email, password, confirmPassword)) {
-                            if (gustos.isNotEmpty()) {
-                                registerViewModel.registerUser(
-                                    name,
-                                    email,
-                                    password,
-                                    gustos[selectedGustoIndex].id
+                        // Mostrar el DropdownMenu
+                        DropdownMenu(
+                            expanded = expanded,
+                            onDismissRequest = { expanded = false },
+                            modifier = Modifier.fillMaxWidth(0.9f)
+                        ) {
+                            ingredientes.forEach { gusto ->
+                                DropdownMenuItem(
+                                    onClick = {
+                                        selectedIngredientIds = setOf(gusto.id)
+                                        selectedIngredientName = gusto.nombre
+                                        expanded = false
+                                    },
+                                    text = { Text(gusto.nombre) }
                                 )
                             }
                         }
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(50.dp),
-                    shape = RoundedCornerShape(8.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = PrimaryPink,
-                        contentColor = Color.White
-                    )
-                ) {
-                    if (registrationState == RegistrationState.LOADING) {
-                        CircularProgressIndicator(
-                            color = Color.White,
-                            modifier = Modifier.size(24.dp)
-                        )
-                    } else {
-                        Text(text = "Create")
                     }
+                }
+
+                // Botón para registro
+                Button(
+                    onClick = {
+                        // Validar inputs antes de registrar
+                        if (validateInputs(name, username, email, password, confirmPassword)) {
+                            // Verificar que se hayan seleccionado ingredientes
+                            if (selectedIngredientIds.isEmpty()) {
+                                showError = true
+                                errorMessage = "Por favor, selecciona un ingrediente"
+                                return@Button
+                            }
+
+                            registerViewModel.registerUser(
+                                name,
+                                username,
+                                email,
+                                password,
+                                fcmToken, // Pasar el token FCM
+                                selectedIngredientIds.toList()
+                            )
+                        } else {
+                            // Mostrar error de validación
+                            showError = true
+                            errorMessage = "Por favor, complete todos los campos correctamente"
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(8.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = PrimaryPink)
+                ) {
+                    Text(text = "Register", color = Color.White)
+                }
+
+                // Mostrar mensaje de error si es necesario
+                if (showError) {
+                    Text(
+                        text = errorMessage,
+                        color = Color.Red,
+                        modifier = Modifier.padding(top = 8.dp)
+                    )
                 }
 
                 // Enlace para iniciar sesión
@@ -302,11 +353,12 @@ fun RegisterUi(
 // Función de validación mejorada
 private fun validateInputs(
     name: String,
+    username: String,
     email: String,
     password: String,
     confirmPassword: String
 ): Boolean {
-    if (name.isEmpty() || email.isEmpty() || password.isEmpty() || confirmPassword.isEmpty()) {
+    if (name.isEmpty() || username.isEmpty() || email.isEmpty() || password.isEmpty() || confirmPassword.isEmpty()) {
         return false
     }
 

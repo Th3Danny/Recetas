@@ -2,28 +2,25 @@ package com.example.recetas.gustos.presentation
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
-import com.example.recetas.gustos.domain.FetchGustosUseCase
-import com.example.recetas.gustos.domain.FetchGustosUseCase.AddGustoToUserUseCase
-import com.example.recetas.gustos.domain.FetchGustosUseCase.GetUserGustosUseCase
-import com.example.recetas.gustos.domain.FetchGustosUseCase.RemoveGustoFromUserUseCase
-
+import com.example.recetas.gustos.domain.AddGustoToUserUseCase
+import com.example.recetas.gustos.domain.GetIngredientsUseCase
+import com.example.recetas.gustos.domain.GetUserGustosUseCase
 
 
 class GustosViewModelFactory(
-    private val fetchGustosUseCase: FetchGustosUseCase,
-    private val getUserGustosUseCase: GetUserGustosUseCase,
     private val addGustoToUserUseCase: AddGustoToUserUseCase,
-    private val removeGustoFromUserUseCase: RemoveGustoFromUserUseCase
+    private val fetchGustosUseCase: GetIngredientsUseCase,
+    private val getUserGustosUseCase: GetUserGustosUseCase
 ) : ViewModelProvider.Factory {
 
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(GustosViewModel::class.java)) {
             @Suppress("UNCHECKED_CAST")
             return GustosViewModel(
-                fetchGustosUseCase,
-                getUserGustosUseCase,
                 addGustoToUserUseCase,
-                removeGustoFromUserUseCase
+                getUserGustosUseCase,
+                fetchGustosUseCase,
+
             ) as T
         }
         throw IllegalArgumentException("Unknown ViewModel class")

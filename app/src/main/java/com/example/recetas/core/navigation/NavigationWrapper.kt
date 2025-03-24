@@ -10,13 +10,14 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.example.recetas.core.network.RetrofitHelper.gustosService
+import com.example.recetas.core.network.RetrofitHelper.retrofit
 import com.example.recetas.core.sesion.SessionManager
 import com.example.recetas.core.sesion.SessionManagerImpl
+import com.example.recetas.gustos.data.datasource.GustosService
 import com.example.recetas.gustos.data.repository.GustosRepository
-import com.example.recetas.gustos.domain.FetchGustosUseCase
-import com.example.recetas.gustos.domain.FetchGustosUseCase.AddGustoToUserUseCase
-import com.example.recetas.gustos.domain.FetchGustosUseCase.GetUserGustosUseCase
-import com.example.recetas.gustos.domain.FetchGustosUseCase.RemoveGustoFromUserUseCase
+import com.example.recetas.gustos.domain.AddGustoToUserUseCase
+import com.example.recetas.gustos.domain.GetIngredientsUseCase
+import com.example.recetas.gustos.domain.GetUserGustosUseCase
 import com.example.recetas.gustos.presentation.GustosScreen
 import com.example.recetas.gustos.presentation.GustosViewModel
 import com.example.recetas.gustos.presentation.GustosViewModelFactory
@@ -30,6 +31,7 @@ import com.example.recetas.login.domain.LoginUseCase
 import com.example.recetas.login.presentation.LoginUi
 import com.example.recetas.login.presentation.LoginViewModel
 import com.example.recetas.login.presentation.LoginViewModelFactory
+import com.example.recetas.receta.data.repository.CreateRecetaRepository
 import com.example.recetas.receta.presentation.CreateRecetaScreen
 import com.example.recetas.receta.presentation.CreateRecetaViewModel
 import com.example.recetas.receta.presentation.CreateRecetaViewModelFactory
@@ -38,6 +40,8 @@ import com.example.recetas.register.domain.CreateUserUseCase
 import com.example.recetas.register.presentation.RegisterUi
 import com.example.recetas.register.presentation.RegisterViewModel
 import com.example.recetas.register.presentation.RegisterViewModelFactory
+
+
 
 @SuppressLint("RestrictedApi")
 @Composable
@@ -61,17 +65,26 @@ fun NavigationWrapper() {
         }
 
         // Pantalla de Registro
+        // Pantalla de Registro
         composable("register") {
             val registerRepository = RegisterRepository()
             val createUserUseCase = CreateUserUseCase(registerRepository)
 
-            // Crear GustosRepository
+            // Determina qué UseCase se requiere basado en la implementación de RegisterViewModelFactory
+
+            // Si RegisterViewModelFactory espera la versión de receta:
+            val recetaRepository = CreateRecetaRepository(context) // O el repositorio apropiado
+            val getIngredientsUseCase = com.example.recetas.register.domain.GetIngredientsUseCase(registerRepository)
+
+            /* Alternativamente, si espera la versión de gustos:
+            val gustosService = retrofit.create(GustosService::class.java)
             val sessionManager = SessionManagerImpl(context)
             val gustosRepository = GustosRepository(gustosService, sessionManager)
-            val fetchGustosUseCase = FetchGustosUseCase(gustosRepository)
+            val getIngredientsUseCase = com.example.recetas.gustos.domain.GetIngredientsUseCase(gustosRepository)
+            */
 
             val registerViewModel: RegisterViewModel = viewModel(
-                factory = RegisterViewModelFactory(createUserUseCase, fetchGustosUseCase)
+                factory = RegisterViewModelFactory(createUserUseCase, getIngredientsUseCase)
             )
 
             RegisterUi(
@@ -114,17 +127,14 @@ fun NavigationWrapper() {
                 sessionManager as SessionManagerImpl
             )
 
-            val fetchGustosUseCase = FetchGustosUseCase(gustosRepository)
-            val getUserGustosUseCase = GetUserGustosUseCase(gustosRepository)
+            val fetchGustosUseCase = GetIngredientsUseCase(gustosRepository)
             val addGustoToUserUseCase = AddGustoToUserUseCase(gustosRepository)
-            val removeGustoFromUserUseCase = RemoveGustoFromUserUseCase(gustosRepository)
-
+            val getUserGustosUseCase = GetUserGustosUseCase(gustosRepository)
             val gustosViewModel: GustosViewModel = viewModel(
                 factory = GustosViewModelFactory(
-                    fetchGustosUseCase,
-                    getUserGustosUseCase,
                     addGustoToUserUseCase,
-                    removeGustoFromUserUseCase
+                    fetchGustosUseCase,
+                    getUserGustosUseCase
                 )
             )
 

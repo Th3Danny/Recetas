@@ -5,11 +5,3 @@ data class AddGustoRequest(
     val gustoId: Int
 )
 
-data class RemoveGustoRequest(
-    val userId: Int,
-    val gustoId: Int
-)
-
-data class GetUserGustosRequest(
-    val userId: Int
-)

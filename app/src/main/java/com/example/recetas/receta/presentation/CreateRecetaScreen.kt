@@ -35,7 +35,7 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.recetas.gustos.data.model.Gusto
 import com.example.recetas.receta.data.model.Category
-import com.example.recetas.receta.data.model.Ingredient
+import com.example.recetas.register.data.model.Ingredient
 import com.example.recetas.ui.theme.*
 
 @OptIn(ExperimentalMaterial3Api::class)

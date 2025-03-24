@@ -1,8 +1,7 @@
 package com.example.recetas.receta.domain
 
-import com.example.recetas.gustos.data.model.Gusto
 import com.example.recetas.receta.data.model.Category
-import com.example.recetas.receta.data.model.Ingredient
+import com.example.recetas.register.data.model.Ingredient
 import com.example.recetas.receta.data.repository.CreateRecetaRepository
 
 class CreateRecetaUseCase(private val repository: CreateRecetaRepository) {
@@ -38,16 +37,16 @@ class CreateRecetaUseCase(private val repository: CreateRecetaRepository) {
     }
 }
 
-class GetGustosUseCase(private val repository: CreateRecetaRepository) {
-    suspend operator fun invoke(): Result<List<Gusto>> {
-        return try {
-            val gustos = repository.getGustos()
-            Result.success(gustos)
-        } catch (e: Exception) {
-            Result.failure(e)
-        }
-    }
-}
+//class GetGustosUseCase(private val repository: CreateRecetaRepository) {
+//    suspend operator fun invoke(): Result<List<Gusto>> {
+//        return try {
+//            val gustos = repository.getGustos()
+//            Result.success(gustos)
+//        } catch (e: Exception) {
+//            Result.failure(e)
+//        }
+//    }
+//}
 
 class GetIngredientsUseCase(private val repository: CreateRecetaRepository) {
     suspend operator fun invoke(): Result<List<Ingredient>> {

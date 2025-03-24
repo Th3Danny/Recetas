@@ -16,8 +16,6 @@ import androidx.work.WorkManager
 import com.example.recetas.R
 import com.example.recetas.core.workers.SyncRecetaOperationsWorker
 
-
-
 class NetworkMonitorService : Service() {
 
     companion object {
