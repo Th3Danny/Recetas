@@ -33,6 +33,9 @@ open class LoginViewModel(
     private val _error = MutableLiveData("")
     val error: LiveData<String> = _error
 
+    private val _token = MutableLiveData<String?>()
+    val token: LiveData<String?> = _token
+
     // Flag para indicar si estamos procesando el login
     private val _isLoading = MutableLiveData(false)
     val isLoading: LiveData<Boolean> = _isLoading
@@ -66,9 +69,17 @@ open class LoginViewModel(
                     // Actualizar estado de éxito (esto activará la navegación)
                     _success.postValue(true)
                     _error.postValue("")
+                    _token.value = loginResponse.data.token
 
-                    // No enviar el token FCM aquí, ya que puede causar errores
-                    // El token se enviará después del login en un momento separado
+                    //  Guardar token en SharedPreferences
+                    val sharedPreferences = context.getSharedPreferences("MyAppPrefs", Context.MODE_PRIVATE)
+                    with(sharedPreferences.edit()) {
+                        putString("authToken", loginResponse.data.token)
+                        apply()
+                    }
+
+                    //  Ahora obtenemos el token FCM y lo enviamos al backend
+                    sendFcmTokenToBackend()
                 }
                     .onFailure { exception ->
                         Log.e("LoginViewModel", "Login fallido: ${exception.message}")
