@@ -5,7 +5,10 @@ data class Ingredient(
     val name: String,
     var quantity: String = "",
     var unit: String = "g"
-)
+) {
+    val imageUrl: String
+        get() = "http://34.194.243.51:8080/api/ingredients/$id/image"
+}
 
 
 data class IngredientsResponse(

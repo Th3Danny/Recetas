@@ -57,6 +57,14 @@ dependencies {
     implementation ("androidx.navigation:navigation-compose:2.7.5")
     implementation(libs.androidx.compose.runtime.livedata)  //LiveData
     implementation ("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.0")
+    implementation ("com.squareup.okhttp3:okhttp:4.9.3")
+    implementation ("com.squareup.retrofit2:converter-scalars:2.9.0")
+
+    //Almacenamiento
+    implementation("io.coil-kt:coil-compose:2.4.0")
+
+
+    implementation ("com.google.android.material:material:1.9.0")
 
     //rooms
     implementation(libs.room.ktx)

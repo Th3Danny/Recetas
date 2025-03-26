@@ -8,18 +8,12 @@ data class Ingredient(
     val name: String,
     var quantity: String = "",
     var unit: String = "g"
-)
+) {
+    val imageUrl: String
+        get() = "http://34.194.243.51:8080/api/ingredients/$id/image"
+}
 
 
-data class IngredientsResponse(
-    val content: List<IngredientDto>?
-)
-
-
-data class IngredientDto(
-    val id: Int,
-    val name: String
-)
 
 
 fun IngredientDto.toIngredient(): Ingredient {
@@ -30,3 +24,8 @@ fun IngredientDto.toIngredient(): Ingredient {
         unit = "g"
     )
 }
+
+
+
+
+

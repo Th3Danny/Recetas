@@ -1,5 +1,9 @@
 package com.example.recetas.gustos.presentation
 
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -18,10 +22,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import coil.compose.rememberAsyncImagePainter
 import com.example.recetas.register.data.model.Ingredient
 import com.example.recetas.ui.theme.*
 
@@ -36,10 +42,10 @@ fun GustosScreen(
     val saveState by gustosViewModel.saveState.collectAsState()
     val isLoading by gustosViewModel.isLoading.observeAsState(false)
     val error by gustosViewModel.error.observeAsState("")
-
+    var showIngredientDialog by remember { mutableStateOf(false) }
     // Estado para rastrear los ingredientes seleccionados
     var selectedIngredients by remember { mutableStateOf(setOf<Int>()) }
-
+    val context = LocalContext.current
     // Cargar gustos e ingredientes al iniciar la pantalla
     LaunchedEffect(key1 = Unit) {
         gustosViewModel.loadIngredients()
@@ -277,7 +283,32 @@ fun GustosScreen(
                             )
                         }
                     }
+
+                    Button(
+                        onClick = { showIngredientDialog = true },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 8.dp)
+                            .height(50.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color(0xFFFFA726),
+                            contentColor = Color.White
+                        ),
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Text("Agregar nuevo ingrediente")
+                    }
                 }
+                if (showIngredientDialog) {
+                    NewIngredientDialog(
+                        onDismiss = { showIngredientDialog = false },
+                        onSubmit = { name, imageUri ->
+                            gustosViewModel.createNewIngredient(context, name, imageUri)
+                            showIngredientDialog = false
+                        }
+                    )
+                }
+
             }
         }
     }
@@ -333,6 +364,67 @@ fun GustoItem(
         }
     }
 }
+
+@Composable
+fun NewIngredientDialog(
+    onDismiss: () -> Unit,
+    onSubmit: (String, Uri?) -> Unit
+) {
+    val context = LocalContext.current
+    var name by remember { mutableStateOf("") }
+    var imageUri by remember { mutableStateOf<Uri?>(null) }
+
+    val galleryLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri ->
+        imageUri = uri
+    }
+
+    AlertDialog(
+        onDismissRequest = { onDismiss() },
+        confirmButton = {
+            TextButton(
+                onClick = {
+                    onSubmit(name, imageUri)
+                },
+                enabled = name.isNotBlank()
+            ) {
+                Text("Guardar")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = { onDismiss() }) {
+                Text("Cancelar")
+            }
+        },
+        title = { Text("Nuevo Ingrediente") },
+        text = {
+            Column {
+                OutlinedTextField(
+                    value = name,
+                    onValueChange = { name = it },
+                    label = { Text("Nombre del ingrediente") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Button(onClick = { galleryLauncher.launch("image/*") }) {
+                    Text("Seleccionar imagen")
+                }
+                imageUri?.let {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Image(
+                        painter = rememberAsyncImagePainter(it),
+                        contentDescription = "Imagen seleccionada",
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(150.dp)
+                    )
+                }
+            }
+        }
+    )
+}
+
 
 @Composable
 fun IngredientSelectableItem(

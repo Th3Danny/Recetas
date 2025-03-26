@@ -40,6 +40,22 @@ class GetIngredientsUseCase(private val repository: GustosRepository) {
     }
 }
 
+class PostIngredientUseCase(
+    private val repository: GustosRepository
+) {
+    suspend operator fun invoke(name: String, imagePath: String?): Result<Unit> {
+        return try {
+            val success = repository.postIngredient(name, imagePath)
+            if (success) Result.success(Unit)
+            else Result.failure<Unit>(Exception("Fallo al crear ingrediente"))
+        } catch (e: Exception) {
+            Result.failure<Unit>(e)
+        }
+    }
+}
+
+
+
     class AddGustoToUserUseCase @Inject constructor(
         private val gustosRepository: GustosRepository
     ) {

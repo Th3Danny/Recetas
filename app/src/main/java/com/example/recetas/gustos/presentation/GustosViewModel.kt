@@ -1,6 +1,10 @@
 package com.example.recetas.gustos.presentation
 
+import android.app.Application
+import android.content.Context
+import android.net.Uri
 import android.util.Log
+import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
@@ -8,6 +12,8 @@ import androidx.lifecycle.viewModelScope
 import com.example.recetas.gustos.data.model.Gusto
 import com.example.recetas.gustos.domain.AddGustoToUserUseCase
 import com.example.recetas.gustos.domain.GetUserGustosUseCase
+import com.example.recetas.gustos.domain.PostIngredientUseCase
+import com.example.recetas.receta.utils.getRealPathFromUri
 import com.example.recetas.register.data.model.Ingredient
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -36,7 +42,8 @@ data class GustoWithSelection(
 class GustosViewModel(
     private val addGustoToUserUseCase: AddGustoToUserUseCase,
     private val getUserGustosUseCase: GetUserGustosUseCase,
-    private val getIngredientsUseCase: com.example.recetas.gustos.domain.GetIngredientsUseCase
+    private val getIngredientsUseCase: com.example.recetas.gustos.domain.GetIngredientsUseCase,
+    private val postIngredientUseCase: PostIngredientUseCase
 ) : ViewModel() {
 
     companion object {
@@ -112,6 +119,28 @@ class GustosViewModel(
             }
         }
     }
+
+    fun createNewIngredient(context: Context, name: String, imageUri: Uri?) {
+        viewModelScope.launch {
+            _isLoading.value = true
+            try {
+                val imagePath = imageUri?.let { getRealPathFromUri(context, it) }
+
+                val result = postIngredientUseCase(name, imagePath)
+
+                result.onSuccess {
+                    loadIngredients()
+                }.onFailure {
+                    _error.value = "Error al crear ingrediente: ${it.message}"
+                }
+            } finally {
+                _isLoading.value = false
+            }
+        }
+    }
+
+
+
 
     // Cargar gustos del usuario
     fun loadUserGustos() {

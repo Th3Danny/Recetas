@@ -77,7 +77,7 @@ class CreateRecetaViewModel(
 
     private val _pendingOperationsCount = MutableLiveData(0)
     val pendingOperationsCount: LiveData<Int> = _pendingOperationsCount
-
+    private val _imagePath = MutableLiveData<String?>(null)
     private var imagePath: String? = null
 
     init {
@@ -87,30 +87,7 @@ class CreateRecetaViewModel(
         loadPendingOperationsCount()
     }
 
-    // Métodos existentes
-//    fun loadGustos() {
-//        viewModelScope.launch {
-//            try {
-//                _isLoading.postValue(true)
-//                _error.postValue("")
-//
-//                val result = getGustosUseCase()
-//
-//                result.onSuccess { gustos ->
-//                    _gustosDisponibles.postValue(gustos)
-//                }.onFailure { exception ->
-//                    Log.e("CreateRecetaViewModel", "Error al cargar gustos: ${exception.message}")
-//                    _error.postValue("Error al cargar las categorías: ${exception.message}")
-//                }
-//
-//            } catch (e: Exception) {
-//                Log.e("CreateRecetaViewModel", "Excepción al cargar gustos: ${e.message}")
-//                _error.postValue("Error: ${e.message}")
-//            } finally {
-//                _isLoading.postValue(false)
-//            }
-//        }
-//    }
+
 
     fun loadIngredients() {
         viewModelScope.launch {
@@ -206,6 +183,7 @@ class CreateRecetaViewModel(
         }
     }
 
+
     fun updateTitle(title: String) {
         _title.value = title
     }
@@ -277,6 +255,9 @@ class CreateRecetaViewModel(
     fun setImagePath(path: String) {
         imagePath = path
     }
+    fun clearImagePath() {
+        _imagePath.value = null
+    }
 
     // Método createReceta modificado para usar o bien las categorías o los gustos seleccionados
     fun createReceta() {
@@ -335,6 +316,7 @@ class CreateRecetaViewModel(
 
                 result.onSuccess {
                     _isSuccess.postValue(true)
+                    clearImagePath()
                     loadPendingOperationsCount()
                 }.onFailure { exception ->
                     Log.e("CreateRecetaViewModel", "Error al crear receta: ${exception.message}")
