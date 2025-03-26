@@ -128,6 +128,7 @@ fun CreateRecetaScreen(
     LaunchedEffect(key1 = isSuccess) {
         if (isSuccess) {
             navController.navigateUp()
+            imageUri = null // 🔥 Esto limpia visualmente la imagen
         }
     }
 
