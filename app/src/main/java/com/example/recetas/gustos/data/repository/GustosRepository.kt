@@ -13,7 +13,11 @@ import com.example.recetas.register.data.model.Ingredient
 import com.example.recetas.register.data.model.toIngredient
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.MultipartBody
+import okhttp3.RequestBody
 import retrofit2.HttpException
+import java.io.File
 import java.io.IOException
 import kotlin.collections.map
 import kotlin.coroutines.cancellation.CancellationException
@@ -59,6 +63,25 @@ class GustosRepository(
         }
     }
 
+    suspend fun postIngredient(name: String, imagePath: String?): Boolean {
+        return withContext(Dispatchers.IO) {
+            try {
+                val namePart = RequestBody.create("text/plain".toMediaTypeOrNull(), name)
+
+                val imagePart = imagePath?.let {
+                    val file = File(it)
+                    val requestFile = RequestBody.create("image/*".toMediaTypeOrNull(), file)
+                    MultipartBody.Part.createFormData("image", file.name, requestFile)
+                }
+
+                val response = gustosService.postIngredient(namePart, imagePart)
+                response.isSuccessful
+            } catch (e: Exception) {
+                Log.e("GustosRepository", "Error al subir ingrediente: ${e.message}")
+                false
+            }
+        }
+    }
 
 
     suspend fun addGustoToUser(gustoId: Int): Boolean {

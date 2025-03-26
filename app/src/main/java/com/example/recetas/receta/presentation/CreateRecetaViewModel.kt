@@ -77,7 +77,7 @@ class CreateRecetaViewModel(
 
     private val _pendingOperationsCount = MutableLiveData(0)
     val pendingOperationsCount: LiveData<Int> = _pendingOperationsCount
-
+    private val _imagePath = MutableLiveData<String?>(null)
     private var imagePath: String? = null
 
     init {
@@ -206,6 +206,7 @@ class CreateRecetaViewModel(
         }
     }
 
+
     fun updateTitle(title: String) {
         _title.value = title
     }
@@ -277,6 +278,9 @@ class CreateRecetaViewModel(
     fun setImagePath(path: String) {
         imagePath = path
     }
+    fun clearImagePath() {
+        _imagePath.value = null
+    }
 
     // Método createReceta modificado para usar o bien las categorías o los gustos seleccionados
     fun createReceta() {
@@ -335,6 +339,7 @@ class CreateRecetaViewModel(
 
                 result.onSuccess {
                     _isSuccess.postValue(true)
+                    clearImagePath()
                     loadPendingOperationsCount()
                 }.onFailure { exception ->
                     Log.e("CreateRecetaViewModel", "Error al crear receta: ${exception.message}")

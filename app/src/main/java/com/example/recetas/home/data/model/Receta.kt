@@ -5,9 +5,11 @@ data class Receta(
     val nombre: String,
     val descripcion: String,
     val autor: String,
-    val imagen: String? = null,
     val gustos: List<Gusto>
-)
+) {
+    val imagenUrl: String
+        get() = "http://34.194.243.51:8080/api/recipes/$id/image"
+}
 
 data class Gusto(
     val id: Int,

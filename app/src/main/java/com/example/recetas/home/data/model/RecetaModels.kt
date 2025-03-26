@@ -26,7 +26,6 @@ fun RecetaDtoApi.toReceta(): Receta {
         nombre = title,
         descripcion = description,
         autor = author_name,
-        imagen = image_url,
         gustos = category_names?.mapIndexed { index, categoryName ->
             Gusto(
                 id = index,  // O un ID predeterminado

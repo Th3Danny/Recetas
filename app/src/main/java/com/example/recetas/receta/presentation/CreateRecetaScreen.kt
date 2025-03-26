@@ -1,7 +1,19 @@
 package com.example.recetas.receta.presentation
 
+import android.Manifest
+import android.app.Activity
+import android.content.Context
+import android.content.Intent
+import android.content.pm.PackageManager
+import android.net.Uri
+import android.os.Build
+import android.provider.MediaStore
 import android.util.Log
+import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -26,23 +38,33 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import coil.compose.rememberAsyncImagePainter
 import com.example.recetas.gustos.data.model.Gusto
 import com.example.recetas.receta.data.model.Category
+import com.example.recetas.receta.utils.getRealPathFromUri
 import com.example.recetas.register.data.model.Ingredient
 import com.example.recetas.ui.theme.*
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CreateRecetaScreen(
     createRecetaViewModel: CreateRecetaViewModel,
-    navController: NavController
+    navController: NavController,
+    viewModel: CreateRecetaViewModel
 ) {
     val title by createRecetaViewModel.title.observeAsState("")
     val description by createRecetaViewModel.description.observeAsState("")
@@ -58,6 +80,48 @@ fun CreateRecetaScreen(
     val isLoading by createRecetaViewModel.isLoading.observeAsState(false)
     val error by createRecetaViewModel.error.observeAsState("")
     val isSuccess by createRecetaViewModel.isSuccess.observeAsState(false)
+    val context = LocalContext.current
+    val prefs = context.getSharedPreferences("MyAppPrefs", Context.MODE_PRIVATE)
+    val savedImageUri = prefs.getString("profileImageUri", null)
+    var imageUri by remember { mutableStateOf<Uri?>(savedImageUri?.let { Uri.parse(it) }) }
+
+
+    //Permisos para almacenamiento
+    val galleryLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            result.data?.data?.let { uri ->
+                imageUri = uri
+
+                val realPath = getRealPathFromUri(context, uri)
+                if (realPath != null) {
+                    viewModel.setImagePath(realPath)
+                }
+            }
+        }
+    }
+
+
+    val permissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            val intent = Intent(Intent.ACTION_PICK)
+            intent.type = "image/*"
+            intent.setPackage("com.google.android.apps.photos")
+
+            if (intent.resolveActivity(context.packageManager) != null) {
+                galleryLauncher.launch(intent)
+            } else {
+                val fallbackIntent = Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI)
+                galleryLauncher.launch(fallbackIntent)
+            }
+        } else {
+            Toast.makeText(context, "Permiso denegado", Toast.LENGTH_SHORT).show()
+        }
+    }
+
 
     var showIngredientDialog by remember { mutableStateOf(false) }
 
@@ -180,13 +244,48 @@ fun CreateRecetaScreen(
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
-                            .clickable { /* Implementar selección de foto */ },
+                            .clickable {
+                                val permission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                                    Manifest.permission.READ_MEDIA_IMAGES
+                                } else {
+                                    Manifest.permission.READ_EXTERNAL_STORAGE
+                                }
+
+                                if (ContextCompat.checkSelfPermission(
+                                        context,
+                                        permission
+                                    ) == PackageManager.PERMISSION_GRANTED
+                                ) {
+                                    val intent = Intent(Intent.ACTION_PICK)
+                                    intent.type = "image/*"
+                                    intent.setPackage("com.google.android.apps.photos") // o el paquete de la galería que quieras
+
+                                    if (intent.resolveActivity(context.packageManager) != null) {
+                                        galleryLauncher.launch(intent)
+                                    } else {
+                                        // Fallback si no se encuentra esa galería
+                                        val fallbackIntent = Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI)
+                                        galleryLauncher.launch(fallbackIntent)
+                                    }
+
+                                } else {
+                                    permissionLauncher.launch(permission)
+                                }
+                            },
                         contentAlignment = Alignment.Center
                     ) {
                         Column(
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
-                            Icon(
+
+                            // Aquí podrías mostrar la imagen cargada con:
+                            imageUri?.let {
+                                Image(
+                                    painter = rememberAsyncImagePainter(it),
+                                    contentDescription = "Imagen seleccionada"
+                                )
+                            }
+                           Icon(
                                 imageVector = Icons.Default.AccountBox,
                                 contentDescription = "Subir foto",
                                 tint = PrimaryPink,
@@ -435,6 +534,7 @@ fun CreateRecetaScreen(
                     }
                 }
 
+
                 if (error.isNotEmpty()) {
                     Text(
                         text = error,
@@ -560,6 +660,21 @@ fun IngredientItem(
                 .padding(8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
+            // Imagen del ingrediente
+            Image(
+                painter = rememberAsyncImagePainter(
+                    model = ingredient.imageUrl
+                ),
+                contentDescription = ingredient.name,
+                modifier = Modifier
+                    .size(48.dp)
+                    .clip(RoundedCornerShape(6.dp))
+                    .background(Color.LightGray),
+                contentScale = ContentScale.Crop
+            )
+
+            Spacer(modifier = Modifier.width(8.dp))
+
             // Nombre del ingrediente
             Text(
                 text = ingredient.name,
@@ -632,6 +747,7 @@ fun IngredientItem(
         }
     }
 }
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

@@ -1,22 +1,24 @@
 package com.example.recetas.receta.data.model
 
+import com.google.gson.annotations.SerializedName
+
 data class CreateRecetaRequest(
-    val user_id: Int,
-    val title: String,
-    val description: String,
-    val instructions: String,
-    val preparation_time: Int,
-    val cooking_time: Int,
-    val servings: Int,
-    val difficulty: String,
-    val category_ids: List<Int>,
-    val ingredients: List<IngredientRequest>
+    @SerializedName("userId") val user_id: Int,
+    @SerializedName("title") val title: String,
+    @SerializedName("description") val description: String,
+    @SerializedName("instructions") val instructions: String,
+    @SerializedName("preparationTime") val preparation_time: Int,
+    @SerializedName("cookingTime") val cooking_time: Int,
+    @SerializedName("servings") val servings: Int,
+    @SerializedName("difficulty") val difficulty: String,
+    @SerializedName("categoryIds") val category_ids: List<Int>,
+    @SerializedName("ingredients") val ingredients: List<IngredientRequest>
 )
 
 data class IngredientRequest(
-    val ingredient_id: Int,
-    val quantity: String,
-    val unit: String
+    @SerializedName("ingredientId") val ingredient_id: Int,
+    @SerializedName("quantity") val quantity: String,
+    @SerializedName("unit") val unit: String
 )
 
 data class CreateRecetaResponse(
@@ -29,5 +31,5 @@ data class RecetaCreatedDto(
     val id: Int,
     val title: String,
     val description: String,
-    val user_id: Int
+    @SerializedName("userId") val user_id: Int
 )

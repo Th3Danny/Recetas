@@ -18,6 +18,7 @@ import com.example.recetas.gustos.data.repository.GustosRepository
 import com.example.recetas.gustos.domain.AddGustoToUserUseCase
 import com.example.recetas.gustos.domain.GetIngredientsUseCase
 import com.example.recetas.gustos.domain.GetUserGustosUseCase
+import com.example.recetas.gustos.domain.PostIngredientUseCase
 import com.example.recetas.gustos.presentation.GustosScreen
 import com.example.recetas.gustos.presentation.GustosViewModel
 import com.example.recetas.gustos.presentation.GustosViewModelFactory
@@ -116,6 +117,7 @@ fun NavigationWrapper() {
 
             CreateRecetaScreen(
                 createRecetaViewModel = createRecetaViewModel,
+                viewModel = createRecetaViewModel,
                 navController = navController
             )
         }
@@ -130,11 +132,13 @@ fun NavigationWrapper() {
             val fetchGustosUseCase = GetIngredientsUseCase(gustosRepository)
             val addGustoToUserUseCase = AddGustoToUserUseCase(gustosRepository)
             val getUserGustosUseCase = GetUserGustosUseCase(gustosRepository)
+            val postIngredientUseCase = PostIngredientUseCase(gustosRepository)
             val gustosViewModel: GustosViewModel = viewModel(
                 factory = GustosViewModelFactory(
                     addGustoToUserUseCase,
                     fetchGustosUseCase,
-                    getUserGustosUseCase
+                    getUserGustosUseCase,
+                    postIngredientUseCase
                 )
             )
 

@@ -13,6 +13,11 @@ import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.MultipartBody
+import okhttp3.RequestBody.Companion.asRequestBody
+import okhttp3.RequestBody.Companion.toRequestBody
+import java.io.File
 
 class SyncRecetaOperationsWorker(
     context: Context,
@@ -21,12 +26,9 @@ class SyncRecetaOperationsWorker(
 
     private val TAG = "SyncRecetasWorker"
 
-    // Utilizamos AppDataBase en lugar de AppDatabase
     private val database = AppDataBase.getDatabase(context)
     private val pendingRecetaOperationDao = database.pendingRecetaOperationDao()
     private val recetaDao = database.recetaDao()
-
-    // Utilizamos el servicio ya configurado en RetrofitHelper
     private val createRecetaService = RetrofitHelper.createRecetaService
 
     override suspend fun doWork(): Result = withContext(Dispatchers.IO) {
@@ -34,29 +36,25 @@ class SyncRecetaOperationsWorker(
             Log.d(TAG, "Iniciando sincronización de recetas pendientes...")
 
             val pendingOperations = pendingRecetaOperationDao.getAllPendingOperations()
-
             if (pendingOperations.isEmpty()) {
                 Log.d(TAG, "No hay recetas pendientes para sincronizar")
                 return@withContext Result.success()
             }
-
-            Log.d(TAG, "Encontradas ${pendingOperations.size} recetas pendientes")
 
             var successCount = 0
             var failureCount = 0
 
             for (operation in pendingOperations) {
                 try {
-                    // Marcar la operación como en progreso
                     pendingRecetaOperationDao.updateOperationStatus(operation.id, "IN_PROGRESS")
 
                     when (operation.operationType) {
                         "CREATE" -> {
-                            Log.d(TAG, "Sincronizando creación de receta: ${operation.title}")
+                            Log.d(TAG, "🆕 Sincronizando creación de receta: ${operation.title}")
 
-                            // Convertir JSON de ingredientes a lista de IngredientRequest
                             val ingredientRequestsType = object : TypeToken<List<IngredientRequest>>() {}.type
-                            val ingredientRequests: List<IngredientRequest> = Gson().fromJson(operation.ingredients, ingredientRequestsType)
+                            val ingredientRequests: List<IngredientRequest> =
+                                Gson().fromJson(operation.ingredients, ingredientRequestsType)
 
                             val request = CreateRecetaRequest(
                                 user_id = operation.userId,
@@ -71,18 +69,40 @@ class SyncRecetaOperationsWorker(
                                 ingredients = ingredientRequests
                             )
 
-                            val response = createRecetaService.createReceta(request)
+                            // Convertir a RequestBody
+                            val gson = Gson()
+                            val recetaJson = gson.toJson(request)
+                            val recetaBody = recetaJson.toRequestBody("application/json".toMediaTypeOrNull())
+
+                            // Imagen (si existe)
+                            val imagePart = operation.image?.let { path ->
+                                val file = File(path)
+                                if (file.exists()) {
+                                    val requestFile = file.asRequestBody("image/*".toMediaTypeOrNull())
+                                    MultipartBody.Part.createFormData("image", file.name, requestFile)
+                                } else {
+                                    null
+                                }
+                            }
+
+                            // Enviar al servidor
+                            val response = createRecetaService.createReceta(
+                                recipeDto = recetaBody,
+                                image = imagePart
+                            )
 
                             if (response.isSuccessful) {
-                                Log.d(TAG, "Sincronización exitosa para receta: ${operation.id}")
+                                Log.d(TAG, "✅ Receta sincronizada correctamente")
+
+                                // Eliminar operación pendiente
                                 pendingRecetaOperationDao.deletePendingOperation(operation.id)
 
-                                // Buscar y marcar la receta como sincronizada
+                                // Marcar receta local como sincronizada
                                 val recetas = recetaDao.getUnsyncedRecetas()
                                 val recetaToSync = recetas.find {
                                     it.title == operation.title &&
-                                            it.userId == operation.userId &&
-                                            it.description == operation.description
+                                            it.description == operation.description &&
+                                            it.userId == operation.userId
                                 }
 
                                 recetaToSync?.let {
@@ -91,22 +111,21 @@ class SyncRecetaOperationsWorker(
 
                                 successCount++
                             } else {
-                                // Si la respuesta no es exitosa, marcar como error
-                                val errorMessage = response.errorBody()?.string() ?: "Error desconocido"
-                                Log.e(TAG, "Error al sincronizar receta: ${response.code()} - $errorMessage")
+                                Log.e(TAG, "❌ Error al sincronizar receta: ${response.code()} - ${response.message()}")
                                 pendingRecetaOperationDao.updateOperationStatus(operation.id, "ERROR")
                                 failureCount++
                             }
                         }
-                        // Aquí se pueden agregar más tipos de operaciones como UPDATE, DELETE, etc.
+
                         else -> {
-                            Log.w(TAG, "Tipo de operación no soportada: ${operation.operationType}")
+                            Log.w(TAG, "⚠ Tipo de operación no soportada: ${operation.operationType}")
                             pendingRecetaOperationDao.updateOperationStatus(operation.id, "ERROR")
                             failureCount++
                         }
                     }
+
                 } catch (e: Exception) {
-                    Log.e(TAG, "Excepción al sincronizar receta ${operation.id}: ${e.message}")
+                    Log.e(TAG, "💥 Error al sincronizar operación ${operation.id}: ${e.message}")
                     e.printStackTrace()
                     pendingRecetaOperationDao.updateOperationStatus(operation.id, "ERROR")
                     failureCount++
@@ -119,14 +138,15 @@ class SyncRecetaOperationsWorker(
             )
 
             if (failureCount > 0) {
-                Log.d(TAG, "Sincronización de recetas completada con errores: $successCount éxitos, $failureCount fallos")
+                Log.d(TAG, "✔️ Finalizada con errores: $successCount exitosas, $failureCount fallidas")
                 Result.failure(resultData)
             } else {
-                Log.d(TAG, "Sincronización de recetas completada con éxito: $successCount operaciones")
+                Log.d(TAG, "🎉 Todas las recetas sincronizadas con éxito")
                 Result.success(resultData)
             }
+
         } catch (e: Exception) {
-            Log.e(TAG, "Error general en el worker de sincronización de recetas: ${e.message}")
+            Log.e(TAG, "💣 Error general en Worker: ${e.message}")
             e.printStackTrace()
             Result.retry()
         }
