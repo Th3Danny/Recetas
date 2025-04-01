@@ -4,10 +4,10 @@
     <selectionStates>
       <SelectionState runConfigName="Recetas.app">
         <option name="selectionMode" value="DROPDOWN" />
-        <DropdownSelection timestamp="2025-03-26T17:20:14.590226700Z">
+        <DropdownSelection timestamp="2025-03-26T21:14:36.775337600Z">
           <Target type="DEFAULT_BOOT">
             <handle>
-              <DeviceId pluginId="PhysicalDevice" identifier="serial=R5CRB28ZMSY" />
+              <DeviceId pluginId="PhysicalDevice" identifier="serial=R28M50K3Q5N" />
             </handle>
           </Target>
         </DropdownSelection>

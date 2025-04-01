@@ -10,7 +10,7 @@ import com.google.gson.reflect.TypeToken
 data class PendingRecetaOperationEntity(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,
-    val operationType: String, // "CREATE", "UPDATE", "DELETE"
+    val operationType: String,
     val userId: Int,
     val title: String,
     val description: String,

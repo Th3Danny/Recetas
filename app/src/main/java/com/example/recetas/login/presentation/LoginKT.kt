@@ -34,7 +34,7 @@ fun LoginUi(
     LaunchedEffect(key1 = success) {
         if (success) {
             // Enviamos el token FCM después de un login exitoso
-            loginViewModel.sendFcmTokenToBackend()
+
             navController.navigate("home") {
                 popUpTo("login") { inclusive = true }
             }
