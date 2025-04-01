@@ -116,15 +116,15 @@ class CreateRecetaRepository(private val context: Context) {
         val gson = Gson()
         val recetaJson = gson.toJson(recetaRequest)
 
-        // ✅ Log del JSON que se enviará
-        Log.d(TAG, "📦 JSON enviado en recipeDTO:")
+        //  Log del JSON que se enviará
+        Log.d(TAG, " JSON enviado en recipeDTO:")
         Log.d(TAG, recetaJson)
 
-        // ✅ Imprimir bien formateado el JSON enviado
+        //  Imprimir bien formateado el JSON enviado
         val prettyJson = gson.toJson(
             gson.fromJson(recetaJson, Any::class.java)
         )
-        Log.d(TAG, "📦 JSON enviado en recipeDTO:\n$prettyJson")
+        Log.d(TAG, "JSON enviado en recipeDTO:\n$prettyJson")
 
         val recetaBody = recetaJson.toRequestBody("text/plain".toMediaTypeOrNull())
 
@@ -140,8 +140,8 @@ class CreateRecetaRepository(private val context: Context) {
         }
 
 
-        Log.d(TAG, "🚀 Enviando datos al backend...")
-        Log.d(TAG, "🖼 Imagen incluida: ${imagePart != null}, Path: $imagePath")
+        Log.d(TAG, " Enviando datos al backend...")
+        Log.d(TAG, " Imagen incluida: ${imagePart != null}, Path: $imagePath")
 
         val response = createRecetaService.createReceta(
             recipeDto = recetaBody,
@@ -150,16 +150,13 @@ class CreateRecetaRepository(private val context: Context) {
 
         if (!response.isSuccessful) {
             val errorBody = response.errorBody()?.string()
-            Log.e(TAG, "❌ Error al crear receta: ${response.code()} - ${response.message()}")
-            Log.e(TAG, "❌ Error body: $errorBody")
+            Log.e(TAG, " Error al crear receta: ${response.code()} - ${response.message()}")
+            Log.e(TAG, " Error body: $errorBody")
             throw Exception("Error al crear receta: ${response.message()}")
         } else {
-            Log.d(TAG, "✅ Receta creada con éxito. ID: ${response.body()?.data?.id}")
+            Log.d(TAG, " Receta creada con éxito. ID: ${response.body()?.data?.id}")
         }
     }
-
-
-
 
     private suspend fun guardarRecetaLocalmente(
         userId: Int,

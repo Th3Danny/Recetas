@@ -9,7 +9,7 @@ import com.example.recetas.login.domain.LoginUseCase
 import kotlinx.coroutines.launch
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
-import com.example.recetas.core.service.notification.FirebaseHelper
+
 import com.example.recetas.login.data.model.LoginDTO
 import com.google.firebase.messaging.FirebaseMessaging
 import kotlinx.coroutines.Dispatchers
@@ -78,8 +78,6 @@ open class LoginViewModel(
                         apply()
                     }
 
-                    //  Ahora obtenemos el token FCM y lo enviamos al backend
-                    sendFcmTokenToBackend()
                 }
                     .onFailure { exception ->
                         Log.e("LoginViewModel", "Login fallido: ${exception.message}")
@@ -106,27 +104,7 @@ open class LoginViewModel(
         Log.d("LoginViewModel", "userId y authToken guardados en SharedPreferences")
     }
 
-    // Función para enviar el token FCM al backend (ahora es pública para poder llamarla después)
-    fun sendFcmTokenToBackend() {
-        viewModelScope.launch {
-            try {
-                val fcmToken = FirebaseMessaging.getInstance().token.await()
-                Log.d("FCM", "Token FCM en login: $fcmToken")
 
-                val sharedPreferences = context.getSharedPreferences("MyAppPrefs", Context.MODE_PRIVATE)
-                val authToken = sharedPreferences.getString("authToken", "")
-
-                if (!authToken.isNullOrEmpty()) {
-                    // Postpone this to avoid immediate network errors
-                    FirebaseHelper.sendTokenToServer(context, fcmToken)
-                } else {
-                    Log.e("FCM", "No se enviará el token de FCM porque el usuario no ha iniciado sesión.")
-                }
-            } catch (e: Exception) {
-                Log.e("FCM", "Error al obtener/enviar token de FCM: ${e.message}")
-            }
-        }
-    }
 
     fun resetLoginState() {
         loginSuccess.value = null

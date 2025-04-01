@@ -25,8 +25,7 @@ class PushNotificationService : FirebaseMessagingService() {
         //  Guardamos el nuevo token de FCM
         saveFCMToken(token)
 
-        //  Enviamos el token al backend si hay usuario autenticado
-        FirebaseHelper.sendTokenToServer(this, token)
+
 
         //  Suscribirse al topic "global"
         subscribeToGlobalTopic()
